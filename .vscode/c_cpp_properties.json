@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "/usr/avr/include",
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "CPU_FREQ=8000000"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "intelliSenseMode": "linux-gcc-x64",
+            "forcedInclude": [
+                "/usr/avr/include/avr/iom328p.h"
+            ]
+        }
+    ],
+    "version": 4
+}
