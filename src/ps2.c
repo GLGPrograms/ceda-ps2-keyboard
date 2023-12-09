@@ -2,6 +2,8 @@
 
 #include "timer.h"
 
+#define PS2_CLOCK_WAIT_TIMEOUT (5000) // [us]
+
 bool ps2_clock(void) {
     return PINC & (1 << PORTC1);
 }
@@ -10,7 +12,6 @@ bool ps2_data(void) {
     return PINC & (1 << PORTC0);
 }
 
-#define PS2_CLOCK_WAIT_TIMEOUT (1000) // [us]
 bool ps2_waitClock(enum EdgeMode mode) {
     const uint32_t start = timer_clock();
     bool timeout = false;
