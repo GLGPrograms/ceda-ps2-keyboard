@@ -27,6 +27,7 @@ SRCS		+= \
 			   src/main.c \
 			   src/ps2.c \
 			   src/timer.c \
+			   src/uart.c \
 			   \
 
 # asm files
