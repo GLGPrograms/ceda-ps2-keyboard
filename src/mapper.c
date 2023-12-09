@@ -343,17 +343,13 @@ bool mapper_parse(const uint8_t *data, uint8_t len, uint8_t *key,
 
         // keyup (only "flag keys" are interesting)
         if (data[0] == 0xF0) {
-            bool good = false;
-
             switch (data[1]) {
             case 0x12: // (LEFT SHIFT)
             case 0x59: // (RIGHT SHIFT)
-                good = true;
                 iflags ^= CEDA_KEY_FLAG_SHIFT;
                 break;
             }
-
-            return good;
+            return false;
         }
     } else if (len == 3) {
         // escape sequence has been released
