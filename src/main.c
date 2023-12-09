@@ -1,6 +1,10 @@
 #include <avr/interrupt.h>
 #include <avr/io.h>
 #include <stdbool.h>
+#include <stddef.h>
+
+#include "compiler.h"
+#include "timer.h"
 
 #define CEDA_KEYBOARD_BAUDRATE (1200)
 #define CEDA_KEYBOARD_BRR      ((CPU_FREQ / 16 / CEDA_KEYBOARD_BAUDRATE) - 1)
@@ -13,21 +17,37 @@ static inline bool ps2_data(void) {
     return PINC & (1 << PORTC0);
 }
 
-static inline void ps2_waitFallingClock(void) {
-    while (ps2_clock() == 1)
-        ;
+enum EdgeMode {
+    EDGE_RISING = 0,
+    EDGE_FALLING = 1,
+};
+
+#define PS2_CLOCK_WAIT_TIMEOUT (1000) // [us]
+static inline bool ps2_waitClock(enum EdgeMode mode) {
+    const uint32_t start = timer_clock();
+    bool timeout = false;
+
+    while (ps2_clock() == mode) {
+        const uint32_t now = timer_clock();
+        if (now >= start + TIMER_US_TO_TICK(PS2_CLOCK_WAIT_TIMEOUT)) {
+            timeout = true;
+            break;
+        }
+    }
+
+    return !timeout;
 }
 
-static inline void ps2_waitRisingClock(void) {
-    while (ps2_clock() == 0)
-        ;
-}
+static inline bool ps2_readBit(bool *bit) {
+    // wait for falling clock, but return false in case of timeout
+    if (!ps2_waitClock(EDGE_FALLING))
+        return false;
 
-static inline bool ps2_readBit(void) {
-    ps2_waitFallingClock();
-    const bool bit = ps2_data();
-    ps2_waitRisingClock();
-    return bit;
+    *bit = ps2_data();
+    if (!ps2_waitClock(EDGE_RISING))
+        return false;
+
+    return true;
 }
 
 static void ps2_init(void) {
@@ -39,21 +59,35 @@ static void ps2_init(void) {
 
 static bool ps2_read(uint8_t *data) {
     // wait for start bit
-    for (bool start_bit = true; start_bit == true;)
-        start_bit = ps2_readBit();
+    for (bool start_bit = true; start_bit == true;) {
+        const bool valid = ps2_readBit(&start_bit);
+        if (!valid)
+            return false;
+    }
 
     // read payload
     *data = 0;
     for (uint8_t i = 0; i < 8; ++i) {
-        const uint8_t bit = !!ps2_readBit();
+        bool bit;
+        const bool valid = ps2_readBit(&bit);
+        if (!valid)
+            return false;
+        bit = !!bit; // make sure bit is either 0 or 1
         *data = (*data >> 1) | (bit << 7);
     }
 
     // read parity and stop bit
-    const bool parity = ps2_readBit();
-    const bool stop_bit = ps2_readBit();
+    bool parity_bit, stop_bit, valid;
 
-    // TODO(giomba): fix parity and frame check
+    valid = ps2_readBit(&parity_bit);
+    if (!valid)
+        return false;
+
+    valid = ps2_readBit(&stop_bit);
+    if (!valid)
+        return false;
+
+        // TODO(giomba): fix parity and frame check
 #if 0
         // check framing and parity errors
         if (stop_bit == 1)
@@ -71,8 +105,74 @@ static bool ps2_read(uint8_t *data) {
     return true;
 }
 
-static void uart_init(void) {
-    // setup UART (1200 8N1)
+static int ps2_readSequence(uint8_t *sequence, size_t len) {
+    size_t i = 0;
+    for (; i < len; ++i) {
+        const bool valid = ps2_read(&sequence[i]);
+        if (!valid)
+            break;
+    }
+    return i;
+}
+
+#if 0
+{
+    do
+        (!ps2_read(&sequence[0]));
+
+    // not an escape sequence
+    if (sequence[0] != 0xE0 && sequence[1] != 0xF0)
+        return 1;
+
+    while (!ps2_read(&sequence[1]))
+        ;
+
+    // it was just a keyup, ignore it
+    if (sequence[0] == 0xF0)
+        return -1;
+
+    // don't know what that was, let's try to ignore it
+    if (sequence[0] != 0xE0)
+        return -1;
+
+    // remember that this is just a keyup of an escaped key,
+    // so that we don't report it in the end,
+    // but we still consume the input buffer
+    const bool escaped_keyup = sequence[1] == 0xF0;
+
+    if (escaped_keyup)
+        while (!ps2_read(&sequence[1]))
+            ;
+
+    const uint8_t ones[] = {
+        0x11, // RIGHT ALT
+        0x14, // RIGHT CTRL
+        0x1F, // LEFT SUPER
+        0x27, // RIGHT SUPER
+        0x2F, // MENU
+        0x4A, // NUM /
+        0x5A, // NUM ENTER
+        0x69, // END
+        0x6B, // CURSOR LEFT
+        0x6C, // BEGIN
+        0x72, // CURSOR DOWN
+        0x74, // CURSOR RIGHT
+        0x75, // CURSOR UP
+        0x70, // INS
+        0x71, // DELETE
+        0x7A, // PAGE DOWN
+        0x7D, // PAGE UP
+    };
+#if 0
+            // sequence starting with: 0xE0
+      switch (sequence[1]){
+
+      } }
+#endif
+}
+#endif
+
+static void uart_init(void) { // setup UART (1200 8N1)
     UBRR0L = (CEDA_KEYBOARD_BRR >> 0) & 0xff;
     UBRR0H = (CEDA_KEYBOARD_BRR >> 8) & 0xff;
     UCSR0B = (1 << TXEN0); // enable TX
@@ -349,13 +449,11 @@ static const uint8_t KEYTAB[] = {
 static bool mapper(uint8_t data, uint8_t *key, uint8_t *flags) {
     static uint8_t modifier = 0;
 
-// TODO(giomba): implement escape sequences parsing
-#if 0
-    if (data == 0xE0 || data == 0xF0) {
-        modifier = data;
+    // ignore keyup events
+    if (data == 0xF0) {
+        ps2_read(&data);
         return false;
     }
-#endif
 
     *flags = 0xc0; // <- no flags
     *key = KEYTAB[data];
@@ -366,11 +464,30 @@ static bool mapper(uint8_t data, uint8_t *key, uint8_t *flags) {
 int main(void) {
     ps2_init();
     uart_init();
+    timer_init();
+
+    // enable interrupts
+    sei();
 
     for (;;) {
-        uint8_t data;
-        if (!ps2_read(&data))
+        uint8_t sequence[8];
+        const int len = ps2_readSequence(sequence, countof(sequence));
+        if (len == 0)
             continue;
+
+        for (int i = 0; i < len; ++i) {
+            uart_putc(sequence[i]);
+        }
+    }
+
+#if 0
+    for (;;) {
+        uint8_t sequence[8];
+        const int len = ps2_readSequence(&sequence);
+        if (len == -1)
+            continue;
+
+        ps2_parseSequence(sequence);
 
         uint8_t key, flags;
         if (!mapper(data, &key, &flags))
@@ -379,4 +496,5 @@ int main(void) {
         uart_putc(key);
         uart_putc(flags);
     }
+#endif
 }

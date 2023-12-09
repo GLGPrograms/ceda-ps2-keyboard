@@ -23,7 +23,10 @@ OUTPUT_DIR    = $(REPODIR)/output
 ## FILES ##
 # c files
 # SRCS        =
-SRCS		+= src/main.c
+SRCS		+= \
+			   src/main.c \
+			   src/timer.c \
+			   \
 
 # asm files
 ASRC 		+=
