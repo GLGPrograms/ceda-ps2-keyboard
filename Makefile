@@ -25,6 +25,7 @@ OUTPUT_DIR    = $(REPODIR)/output
 # SRCS        =
 SRCS		+= \
 			   src/main.c \
+			   src/mapper.c \
 			   src/ps2.c \
 			   src/timer.c \
 			   src/uart.c \

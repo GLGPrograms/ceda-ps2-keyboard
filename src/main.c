@@ -4,289 +4,15 @@
 #include <stddef.h>
 
 #include "compiler.h"
+#include "mapper.h"
 #include "ps2.h"
 #include "timer.h"
 #include "uart.h"
 
-#define KEY_SP (0x39)
-static const uint8_t KEYTAB[] = {
-    KEY_SP, // 00 (---)
-    0x56,   // 01 (F9)
-    KEY_SP, // 02 (---)
-    0x52,   // 03 (F5)
-    0x50,   // 04 (F3)
-    0x4E,   // 05 (F1)
-    0x4F,   // 06 (F2)
-    0x59,   // 07 (F12)
-    KEY_SP, // 08 (---)
-    0x57,   // 09 (F10)
-    0x55,   // 0A (F8)
-    0x53,   // 0B (F6)
-    0x51,   // 0C (F4)
-    0x12,   // 0D (TAB)
-    KEY_SP, // 0E (---)
-    KEY_SP, // 0F (---)
-    KEY_SP, // 10 (---)
-    KEY_SP, // 11 (---)
-    KEY_SP, // 12 (---)
-    KEY_SP, // 13 (---)
-    0x61,   // 14 (LEFT CTRL)
-    0x20,   // 15 ('Q')
-    0x03,   // 16 ('1')
-    KEY_SP, // 17 (---)
-    KEY_SP, // 18 (---)
-    KEY_SP, // 19 (---)
-    0x14,   // 1A ('Z')
-    0x21,   // 1B ('S')
-    0x13,   // 1C ('A')
-    0x2E,   // 1D ('W')
-    0x04,   // 1E ('2')
-    KEY_SP, // 1F (---)
-    KEY_SP, // 20 (---)
-    0x30,   // 21 ('C')
-    0x2F,   // 22 ('X')
-    0x22,   // 23 ('D')
-    0x15,   // 24 ('E')
-    0x06,   // 25 ('4')
-    0x05,   // 26 ('3')
-    KEY_SP, // 27 (---)
-    KEY_SP, // 28 (---)
-    0x39,   // 29 (SPACE)
-    0x31,   // 2A ('V')
-    0x23,   // 2B ('F')
-    0x17,   // 2C ('T')
-    0x16,   // 2D ('R')
-    0x07,   // 2E ('5')
-    KEY_SP, // 2F (---)
-    KEY_SP, // 30 (---)
-    0x33,   // 31 ('N')
-    0x32,   // 32 ('B')
-    0x25,   // 33 ('H')
-    0x24,   // 34 ('G')
-    0x18,   // 35 ('Y')
-    0x08,   // 36 ('6')
-    KEY_SP, // 37 (---)
-    KEY_SP, // 38 (---)
-    KEY_SP, // 39 (---)
-    0x29,   // 3A ('M')
-    0x26,   // 3B ('J')
-    0x19,   // 3C ('U')
-    0x09,   // 3D ('7')
-    0x0A,   // 3E ('8')
-    KEY_SP, // 3F (---)
-    KEY_SP, // 40 (---)
-    KEY_SP, // 41 (---)
-    0x27,   // 42 ('K')
-    0x1A,   // 43 ('I')
-    0x1B,   // 44 ('O')
-    0x0C,   // 45 ('0')
-    0x0B,   // 46 ('9')
-    KEY_SP, // 47 (---)
-    KEY_SP, // 48 (---)
-    KEY_SP, // 49 (---)
-    KEY_SP, // 4A (---)
-    0x28,   // 4B ('L')
-    KEY_SP, // 4C (---)
-    0x1C,   // 4D ('P')
-    KEY_SP, // 4E (---)
-    KEY_SP, // 4F (---)
-    KEY_SP, // 50 (---)
-    KEY_SP, // 51 (---)
-    KEY_SP, // 52 (---)
-    KEY_SP, // 53 (---)
-    KEY_SP, // 54 (---)
-    KEY_SP, // 55 (---)
-    KEY_SP, // 56 (---)
-    KEY_SP, // 57 (---)
-    KEY_SP, // 58 (---)
-    KEY_SP, // 59 (---)
-    0x2B,   // 5A (ENTER)
-    KEY_SP, // 5B (---)
-    KEY_SP, // 5C (---)
-    KEY_SP, // 5D (---)
-    KEY_SP, // 5E (---)
-    KEY_SP, // 5F (---)
-    KEY_SP, // 60 (---)
-    KEY_SP, // 61 (---)
-    KEY_SP, // 62 (---)
-    KEY_SP, // 63 (---)
-    KEY_SP, // 64 (---)
-    KEY_SP, // 65 (---)
-    0x0F,   // 66 (BACKSPACE)
-    KEY_SP, // 67 (---)
-    KEY_SP, // 68 (---)
-    KEY_SP, // 69 (---)
-    KEY_SP, // 6A (---)
-    KEY_SP, // 6B (---)
-    KEY_SP, // 6C (---)
-    KEY_SP, // 6D (---)
-    KEY_SP, // 6E (---)
-    KEY_SP, // 6F (---)
-    KEY_SP, // 70 (---)
-    KEY_SP, // 71 (---)
-    KEY_SP, // 72 (---)
-    KEY_SP, // 73 (---)
-    KEY_SP, // 74 (---)
-    KEY_SP, // 75 (---)
-    0x01,   // 76 (ESC)
-    KEY_SP, // 77 (---)
-    0x58,   // 78 (F11)
-    KEY_SP, // 79 (---)
-    KEY_SP, // 7A (---)
-    KEY_SP, // 7B (---)
-    KEY_SP, // 7C (---)
-    KEY_SP, // 7D (---)
-    KEY_SP, // 7E (---)
-    KEY_SP, // 7F (---)
-    KEY_SP, // 80 (---)
-    KEY_SP, // 81 (---)
-    KEY_SP, // 82 (---)
-    0x54,   // 83 (F7)
-    KEY_SP, // 84 (---)
-    KEY_SP, // 85 (---)
-    KEY_SP, // 86 (---)
-    KEY_SP, // 87 (---)
-    KEY_SP, // 88 (---)
-    KEY_SP, // 89 (---)
-    KEY_SP, // 8A (---)
-    KEY_SP, // 8B (---)
-    KEY_SP, // 8C (---)
-    KEY_SP, // 8D (---)
-    KEY_SP, // 8E (---)
-    KEY_SP, // 8F (---)
-    KEY_SP, // 90 (---)
-    KEY_SP, // 91 (---)
-    KEY_SP, // 92 (---)
-    KEY_SP, // 93 (---)
-    KEY_SP, // 94 (---)
-    KEY_SP, // 95 (---)
-    KEY_SP, // 96 (---)
-    KEY_SP, // 97 (---)
-    KEY_SP, // 98 (---)
-    KEY_SP, // 99 (---)
-    KEY_SP, // 9A (---)
-    KEY_SP, // 9B (---)
-    KEY_SP, // 9C (---)
-    KEY_SP, // 9D (---)
-    KEY_SP, // 9E (---)
-    KEY_SP, // 9F (---)
-    KEY_SP, // A0 (---)
-    KEY_SP, // A1 (---)
-    KEY_SP, // A2 (---)
-    KEY_SP, // A3 (---)
-    KEY_SP, // A4 (---)
-    KEY_SP, // A5 (---)
-    KEY_SP, // A6 (---)
-    KEY_SP, // A7 (---)
-    KEY_SP, // A8 (---)
-    KEY_SP, // A9 (---)
-    KEY_SP, // AA (---)
-    KEY_SP, // AB (---)
-    KEY_SP, // AC (---)
-    KEY_SP, // AD (---)
-    KEY_SP, // AE (---)
-    KEY_SP, // AF (---)
-    KEY_SP, // B0 (---)
-    KEY_SP, // B1 (---)
-    KEY_SP, // B2 (---)
-    KEY_SP, // B3 (---)
-    KEY_SP, // B4 (---)
-    KEY_SP, // B5 (---)
-    KEY_SP, // B6 (---)
-    KEY_SP, // B7 (---)
-    KEY_SP, // B8 (---)
-    KEY_SP, // B9 (---)
-    KEY_SP, // BA (---)
-    KEY_SP, // BB (---)
-    KEY_SP, // BC (---)
-    KEY_SP, // BD (---)
-    KEY_SP, // BE (---)
-    KEY_SP, // BF (---)
-    KEY_SP, // C0 (---)
-    KEY_SP, // C1 (---)
-    KEY_SP, // C2 (---)
-    KEY_SP, // C3 (---)
-    KEY_SP, // C4 (---)
-    KEY_SP, // C5 (---)
-    KEY_SP, // C6 (---)
-    KEY_SP, // C7 (---)
-    KEY_SP, // C8 (---)
-    KEY_SP, // C9 (---)
-    KEY_SP, // CA (---)
-    KEY_SP, // CB (---)
-    KEY_SP, // CC (---)
-    KEY_SP, // CD (---)
-    KEY_SP, // CE (---)
-    KEY_SP, // CF (---)
-    KEY_SP, // D0 (---)
-    KEY_SP, // D1 (---)
-    KEY_SP, // D2 (---)
-    KEY_SP, // D3 (---)
-    KEY_SP, // D4 (---)
-    KEY_SP, // D5 (---)
-    KEY_SP, // D6 (---)
-    KEY_SP, // D7 (---)
-    KEY_SP, // D8 (---)
-    KEY_SP, // D9 (---)
-    KEY_SP, // DA (---)
-    KEY_SP, // DB (---)
-    KEY_SP, // DC (---)
-    KEY_SP, // DD (---)
-    KEY_SP, // DE (---)
-    KEY_SP, // DF (---)
-    KEY_SP, // E0 (---)
-    KEY_SP, // E1 (---)
-    KEY_SP, // E2 (---)
-    KEY_SP, // E3 (---)
-    KEY_SP, // E4 (---)
-    KEY_SP, // E5 (---)
-    KEY_SP, // E6 (---)
-    KEY_SP, // E7 (---)
-    KEY_SP, // E8 (---)
-    KEY_SP, // E9 (---)
-    KEY_SP, // EA (---)
-    KEY_SP, // EB (---)
-    KEY_SP, // EC (---)
-    KEY_SP, // ED (---)
-    KEY_SP, // EE (---)
-    KEY_SP, // EF (---)
-    KEY_SP, // F0 (---)
-    KEY_SP, // F1 (---)
-    KEY_SP, // F2 (---)
-    KEY_SP, // F3 (---)
-    KEY_SP, // F4 (---)
-    KEY_SP, // F5 (---)
-    KEY_SP, // F6 (---)
-    KEY_SP, // F7 (---)
-    KEY_SP, // F8 (---)
-    KEY_SP, // F9 (---)
-    KEY_SP, // FA (---)
-    KEY_SP, // FB (---)
-    KEY_SP, // FC (---)
-    KEY_SP, // FD (---)
-    KEY_SP, // FE (---)
-    KEY_SP, // FF (---)
-};
-
-static bool mapper(uint8_t data, uint8_t *key, uint8_t *flags) {
-    static uint8_t modifier = 0;
-
-    // ignore keyup events
-    if (data == 0xF0) {
-        ps2_read(&data);
-        return false;
-    }
-
-    *flags = 0xc0; // <- no flags
-    *key = KEYTAB[data];
-
-    return true;
-}
-
 int main(void) {
-    ps2_init();
     uart_init();
     timer_init();
+    ps2_init();
 
     // enable interrupts
     sei();
@@ -297,26 +23,23 @@ int main(void) {
         if (len == 0)
             continue;
 
-        for (int i = 0; i < len; ++i) {
-            uart_putc(sequence[i]);
-        }
-    }
-
-#if 0
-    for (;;) {
-        uint8_t sequence[8];
-        const int len = ps2_readSequence(&sequence);
-        if (len == -1)
-            continue;
-
-        ps2_parseSequence(sequence);
-
         uint8_t key, flags;
-        if (!mapper(data, &key, &flags))
+        const bool parsed = mapper_parse(sequence, len, &key, &flags);
+        if (!parsed)
             continue;
 
         uart_putc(key);
         uart_putc(flags);
-    }
+
+// send scan codes on serial port for debugging purposes
+#if 0
+        // send length
+        uart_putc(len);
+
+        // send scan code
+        for (int i = 0; i < len; ++i) {
+            uart_putc(sequence[i]);
+        }
 #endif
+    }
 }
