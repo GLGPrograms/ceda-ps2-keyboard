@@ -21,9 +21,6 @@ void timer_init(void) {
     OCR1A = 100 - 1; // 100 us
 
     TIMSK1 |= 0x2; // enable timer
-
-    // TEST
-    DDRB |= (1 << PORTB0);
 }
 
 uint32_t timer_clock(void) {

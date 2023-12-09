@@ -18,16 +18,19 @@ int main(void) {
     sei();
 
     for (;;) {
+        // read a scancode sequence from PS/2
         uint8_t sequence[8];
         const int len = ps2_readSequence(sequence, countof(sequence));
         if (len == 0)
             continue;
 
+        // parse sequence into (key, flags) for Sanco
         uint8_t key, flags;
         const bool parsed = mapper_parse(sequence, len, &key, &flags);
         if (!parsed)
             continue;
 
+        // send (key, flags) to Sanco
         uart_putc(key);
         uart_putc(flags);
 
