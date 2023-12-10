@@ -355,18 +355,15 @@ bool mapper_parse(const uint8_t *data, uint8_t len, uint8_t *key,
         // escape sequence has been released
         if (data[0] == 0xE0 && data[1] == 0xF0) {
             // some keys are "flag keys", so we need to release them
-            bool good = false;
             switch (data[2]) {
             case 0x11: // (RIGHT ALT)
-                good = true;
                 iflags ^= CEDA_KEY_FLAG_ALT;
                 break;
             case 0x14: // (RIGHT CTRL)
-                good = true;
                 iflags ^= CEDA_KEY_FLAG_CTRL;
                 break;
             }
-            return good;
+            return false;
         }
     }
 
