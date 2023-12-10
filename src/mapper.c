@@ -91,7 +91,7 @@ static const uint8_t KEYTAB[] = {
     CEDA_KEY_NONE, // 55 (---)
     CEDA_KEY_NONE, // 56 (---)
     CEDA_KEY_NONE, // 57 (---)
-    CEDA_KEY_NONE, // 58 (---)
+    CEDA_KEY_NONE, // 58 (SHIFT LOCK)
     0x64,          // 59 (RIGHT SHIFT)
     0x2B,          // 5A (ENTER)
     CEDA_KEY_NONE, // 5B (---)
@@ -307,6 +307,9 @@ bool mapper_parse(const uint8_t *data, uint8_t len, uint8_t *key,
         case 0x59: // (RIGHT SHIFT)
             iflags |= CEDA_KEY_FLAG_SHIFT;
             break;
+        case 0x58: // (SHIFT LOCK)
+            iflags ^= CEDA_KEY_FLAG_CAPS_LOCK;
+            break;
         }
 
         *oflags = iflags;
@@ -346,7 +349,7 @@ bool mapper_parse(const uint8_t *data, uint8_t len, uint8_t *key,
             switch (data[1]) {
             case 0x12: // (LEFT SHIFT)
             case 0x59: // (RIGHT SHIFT)
-                iflags ^= CEDA_KEY_FLAG_SHIFT;
+                iflags &= ~CEDA_KEY_FLAG_SHIFT;
                 break;
             }
             return false;
@@ -357,10 +360,10 @@ bool mapper_parse(const uint8_t *data, uint8_t len, uint8_t *key,
             // some keys are "flag keys", so we need to release them
             switch (data[2]) {
             case 0x11: // (RIGHT ALT)
-                iflags ^= CEDA_KEY_FLAG_ALT;
+                iflags &= ~CEDA_KEY_FLAG_ALT;
                 break;
             case 0x14: // (RIGHT CTRL)
-                iflags ^= CEDA_KEY_FLAG_CTRL;
+                iflags &= ~CEDA_KEY_FLAG_CTRL;
                 break;
             }
             return false;
