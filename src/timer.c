@@ -10,8 +10,6 @@ ISR(TIMER1_COMPA_vect) {
     ++ticks;
 
     PINB |= (1 << PORTB0);
-
-    TIMSK1 |= 0x2; // enable timer
 }
 
 void timer_init(void) {
