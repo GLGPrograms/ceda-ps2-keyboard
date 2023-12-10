@@ -65,31 +65,27 @@ bool ps2_read(uint8_t *data) {
         *data = (*data >> 1) | (bit << 7);
     }
 
-    // read parity and stop bit
+    // read parity and stop bits
     bool parity_bit, stop_bit, valid;
-
     valid = ps2_readBit(&parity_bit);
     if (!valid)
         return false;
-
     valid = ps2_readBit(&stop_bit);
     if (!valid)
         return false;
 
-        // TODO(giomba): fix parity and frame check
-#if 0
-        // check framing and parity errors
-        if (stop_bit == 1)
-            return false;
+    // check framing
+    if (stop_bit == 0)
+        return false;
 
-        uint8_t ones = !!parity;
-        for (uint8_t i = 0; i < 8; ++i) {
-            if (*data & (1 << i))
-                ++ones;
-        }
-
-        return (ones % 2 == 1); // odd parity
-#endif
+    // check parity
+    uint8_t ones = !!parity_bit;
+    for (uint8_t i = 0; i < 8; ++i) {
+        if (*data & (1 << i))
+            ++ones;
+    }
+    if (ones % 2 == 0) // odd parity
+        return false;
 
     return true;
 }
