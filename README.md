@@ -16,6 +16,11 @@ You have a Sanco 800x computer, but no keyboard? Worry no more, use this PS/2 to
 
 ![schematics](img/ceda-keyboard-sch.png)
 
+## Map
+Common IBM-like ISO-layout keyboards are mapped to Sanco's original symbols like the following diagram ([SVG](img/scancode.svg)).
+
+![ISO keyboard mapping](img/scancode.svg)
+
 ## Flash
 Hook your Atmega to the programmer, then:
 
