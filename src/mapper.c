@@ -280,7 +280,7 @@ static const struct ps22ceda_associator ESCAPE_E0[] = {
     {0x72, 0x3B},          // (CURSOR DOWN)
     {0x74, 0x3D},          // (CURSOR RIGHT)
     {0x75, 0x3A},          // (CURSOR UP)
-    {0x70, CEDA_KEY_NONE}, // (INS)
+    {0x70, 0x4D},          // (INS) (mapped to BOOT key)
     {0x71, 0x0F},          // (DELETE)
     {0x7A, CEDA_KEY_NONE}, // (PAGE DOWN)
     {0x7D, CEDA_KEY_NONE}, // (PAGE UP)
